@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Assign Role - Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4"><i class="bi bi-person-gear"></i> Assign User Role</h1>
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <div class="mb-3">
+                        <strong>Username:</strong> {{ user.username }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Email:</strong> {{ user.email }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Current Role:</strong>
+                        <span class="badge bg-secondary">{{ user.get_role_display }}</span>
+                    </div>
+
+                    <hr>
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label for="{{ form.role.id_for_label }}" class="form-label">Change Role To:</label>
+                            {{ form.role }}
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> <strong>Warning:</strong> Changing a user's role
+                            will affect their permissions and access to different parts of the system.
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle"></i> Update Role
+                            </button>
+                            <a href="{% url 'manage_users' %}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card bg-light shadow-sm">
+                <div class="card-body">
+                    <h6><i class="bi bi-info-circle"></i> Role Information</h6>
+                    <ul class="mb-0">
+                        <li><strong>Citizen:</strong> Can submit waste reports and view recycling centers</li>
+                        <li><strong>Staff:</strong> Can manage reports assigned to their recycling center</li>
+                        <li><strong>Admin:</strong> Can manage all reports, centers, and users</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

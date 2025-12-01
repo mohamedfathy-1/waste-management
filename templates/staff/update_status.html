@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Update Report Status{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4"><i class="bi bi-pencil-square"></i> Update Report Status</h1>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Report #{{ report.id }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Citizen:</strong> {{ report.citizen.username }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Description:</strong>
+                        <p>{{ report.description }}</p>
+                    </div>
+                    {% if report.image %}
+                    <div class="mb-3">
+                        <strong>Image:</strong><br>
+                        <img src="{{ report.image.url }}" alt="Report image" class="img-fluid mt-2"
+                            style="max-width: 400px; border-radius: 8px;">
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <strong>Location:</strong> {{ report.latitude }}, {{ report.longitude }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Submitted:</strong> {{ report.created_at|date:"M d, Y H:i" }}
+                    </div>
+
+                    <hr>
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label for="{{ form.status.id_for_label }}" class="form-label">Update Status</label>
+                            {{ form.status }}
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle"></i> Update Status
+                            </button>
+                            <a href="{% url 'view_reports' %}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

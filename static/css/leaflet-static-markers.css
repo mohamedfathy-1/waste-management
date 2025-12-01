@@ -1,0 +1,11 @@
+/* Minimal CSS to prevent marker movement while keeping them visible */
+
+.leaflet-marker-icon {
+    transition: none !important;
+}
+
+.custom-marker,
+.user-marker,
+.user-location-marker {
+    transition: none !important;
+}

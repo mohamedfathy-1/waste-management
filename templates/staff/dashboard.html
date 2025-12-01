@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+
+{% block title %}Staff Dashboard{% endblock %}
+
+{% block content %}
+<div class="container animate-fade-in">
+    <!-- Welcome Header -->
+    <div class="row mb-4 animate-fade-in-down">
+        <div class="col-12">
+            <div class="card border-0"
+                style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white;">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h2 class="mb-1"><i class="bi bi-person-badge me-2"></i>Staff Dashboard</h2>
+                            <p class="mb-0 opacity-75">Manage reports for your assigned recycling center</p>
+                        </div>
+                        <div class="d-none d-md-block">
+                            <i class="bi bi-building" style="font-size: 4rem; opacity: 0.2;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if center %}
+    <!-- Assigned Center Info -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card hover-lift">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center">
+                        <div class="me-4">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                style="width: 80px; height: 80px; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                                <i class="bi bi-building text-white" style="font-size: 2rem;"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h4 class="mb-2">{{ center.name }}</h4>
+                            <p class="text-muted mb-2"><i class="bi bi-geo-alt me-2"></i>{{ center.address }}</p>
+                            <p class="text-muted mb-0"><i class="bi bi-clock me-2"></i>{{ center.working_hours }}</p>
+                        </div>
+                        <div>
+                            <a href="{% url 'update_center_info' %}" class="btn btn-outline-primary">
+                                <i class="bi bi-pencil me-2"></i>Update Info
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3 col-sm-6">
+            <div class="stat-card animate-fade-in-up"
+                style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
+                <i class="bi bi-file-earmark-text"></i>
+                <h6><i class="bi bi-file-earmark-text me-2"></i>Total Reports</h6>
+                <h2>{{ total_reports }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6">
+            <div class="stat-card animate-fade-in-up animate-stagger-1"
+                style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                <i class="bi bi-clock-history"></i>
+                <h6><i class="bi bi-clock-history me-2"></i>Pending</h6>
+                <h2>{{ pending_reports }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6">
+            <div class="stat-card animate-fade-in-up animate-stagger-2"
+                style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+                <i class="bi bi-arrow-repeat"></i>
+                <h6><i class="bi bi-arrow-repeat me-2"></i>In Progress</h6>
+                <h2>{{ in_progress_reports }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6">
+            <div class="stat-card animate-fade-in-up animate-stagger-3"
+                style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                <i class="bi bi-check-circle"></i>
+                <h6><i class="bi bi-check-circle me-2"></i>Completed</h6>
+                <h2>{{ completed_reports }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Reports -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Reports</h5>
+                    <a href="{% url 'view_reports' %}" class="btn btn-sm btn-primary">
+                        View All Reports <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_reports %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Citizen</th>
+                                    <th>Description</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for report in recent_reports %}
+                                <tr>
+                                    <td><strong>#{{ report.id }}</strong></td>
+                                    <td>
+                                        <i class="bi bi-person-circle me-2"></i>
+                                        {{ report.citizen.username }}
+                                    </td>
+                                    <td>{{ report.description|truncatewords:10 }}</td>
+                                    <td>
+                                        {% if report.status == 'pending' %}
+                                        <span class="badge bg-warning">
+                                            <i class="bi bi-clock"></i> Pending
+                                        </span>
+                                        {% elif report.status == 'in_progress' %}
+                                        <span class="badge bg-info">
+                                            <i class="bi bi-arrow-repeat"></i> In Progress
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-check-circle"></i> Completed
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ report.created_at|date:"M d, Y" }}</td>
+                                    <td>
+                                        <a href="{% url 'update_report_status' report.pk %}"
+                                            class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox" style="font-size: 3rem; color: #d1d5db;"></i>
+                        <p class="text-muted mt-3 mb-0">No reports assigned to your center yet.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- No Center Assigned -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-exclamation-triangle" style="font-size: 4rem; color: #f59e0b;"></i>
+                    <h4 class="mt-4 mb-2">No Center Assigned</h4>
+                    <p class="text-muted mb-0">You are not currently assigned to any recycling center. Please contact an
+                        administrator.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

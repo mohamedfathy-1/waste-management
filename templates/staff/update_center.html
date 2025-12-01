@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}Update Center Information{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4"><i class="bi bi-building"></i> Update Center Information</h1>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <h5 class="mb-3">{{ center.name }}</h5>
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                        {% for field in form %}
+                        {% if field.name != 'assigned_staff' %}
+                        <div class="mb-3">
+                            <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                            <small class="form-text text-muted">{{ field.help_text }}</small>
+                            {% endif %}
+                            {% if field.errors %}
+                            <div class="text-danger small">{{ field.errors }}</div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle"></i> Update Center
+                            </button>
+                            <a href="{% url 'staff_dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card bg-light shadow-sm">
+                <div class="card-body">
+                    <h6><i class="bi bi-info-circle"></i> Information</h6>
+                    <p class="small text-muted mb-0">
+                        Update your recycling center's information here. This information will be visible to citizens
+                        looking for recycling centers.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

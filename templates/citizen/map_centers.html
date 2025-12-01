@@ -1,0 +1,575 @@
+{% extends 'base.html' %}
+
+{% block title %}Recycling Centers Map{% endblock %}
+
+{% block extra_css %}
+<style>
+    #map {
+        height: calc(100vh - 250px);
+        min-height: 500px;
+        border-radius: 1.5rem;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .map-header {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border-radius: 1.5rem;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+    }
+
+    .map-controls {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .map-control-btn {
+        background: white;
+        border: none;
+        border-radius: 0.75rem;
+        padding: 0.75rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .map-control-btn:hover {
+        background: #10b981;
+        color: white;
+        transform: scale(1.1);
+    }
+
+    .map-legend {
+        position: absolute;
+        bottom: 1rem;
+        left: 1rem;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .legend-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .legend-icon {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Custom Leaflet Popup */
+    .leaflet-popup-content-wrapper {
+        border-radius: 1rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+        padding: 0;
+    }
+
+    .leaflet-popup-content {
+        margin: 0;
+        min-width: 250px;
+    }
+
+    .popup-header {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        padding: 1rem;
+        border-radius: 1rem 1rem 0 0;
+    }
+
+    .popup-body {
+        padding: 1rem;
+    }
+
+    .popup-footer {
+        padding: 0.75rem 1rem;
+        background: #f9fafb;
+        border-radius: 0 0 1rem 1rem;
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    /* CRITICAL: Force markers to be visible AND static */
+    .leaflet-marker-icon,
+    .leaflet-marker-pane,
+    .leaflet-div-icon {
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+    
+    /* CRITICAL: Prevent marker movement on click/drag */
+    .leaflet-marker-icon {
+        transition: none !important;
+        animation: none !important;
+        cursor: pointer !important;
+    }
+    
+    .leaflet-marker-icon:active {
+        transform: none !important;
+        cursor: pointer !important;
+    }
+    
+    /* Ensure marker pane doesn't move */
+    .leaflet-marker-pane {
+        transition: none !important;
+        animation: none !important;
+    }
+    
+    /* Disable dragging on markers */
+    .leaflet-marker-draggable {
+        cursor: pointer !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 animate-fade-in">
+    <!-- Header -->
+    <div class="map-header animate-fade-in-down">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-2"><i class="bi bi-geo-alt-fill me-2"></i>Find Recycling Centers</h1>
+                <p class="mb-0 opacity-75">Locate nearby recycling centers on the interactive map</p>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <div class="d-flex gap-2 justify-content-md-end">
+                    <span class="badge bg-white text-dark px-3 py-2">
+                        <i class="bi bi-building me-2"></i>
+                        {{ centers.count }} Centers
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Map Container -->
+    <div class="position-relative animate-fade-in-up">
+        <div id="map"></div>
+
+        <!-- Map Controls -->
+        <div class="map-controls">
+            <button class="map-control-btn" onclick="map.zoomIn()" title="Zoom In">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+            <button class="map-control-btn" onclick="map.zoomOut()" title="Zoom Out">
+                <i class="bi bi-dash-lg"></i>
+            </button>
+            <button class="map-control-btn" onclick="locateUser()" title="My Location">
+                <i class="bi bi-crosshair"></i>
+            </button>
+        </div>
+
+        <!-- Map Legend -->
+        <div class="map-legend">
+            <h6 class="mb-3"><i class="bi bi-info-circle me-2"></i>Legend</h6>
+            <div class="legend-item">
+                <div class="legend-icon">
+                    <i class="bi bi-geo-alt-fill" style="color: #10b981; font-size: 1.25rem;"></i>
+                </div>
+                <small>Recycling Center</small>
+            </div>
+            <div class="legend-item">
+                <div class="legend-icon">
+                    <i class="bi bi-person-fill" style="color: #3b82f6; font-size: 1.25rem;"></i>
+                </div>
+                <small>Your Location</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // ========================================================================
+    // MAP INITIALIZATION
+    // ========================================================================
+    console.log('=== LEAFLET MAP DEBUG INFO ===');
+    
+    // Check if Leaflet is loaded
+    if (typeof L === 'undefined') {
+        console.error('CRITICAL ERROR: Leaflet library not loaded!');
+        alert('Map library failed to load. Please refresh the page.');
+        throw new Error('Leaflet not loaded');
+    }
+    console.log('✓ Leaflet library loaded:', L.version);
+    
+    // Check map container
+    var mapContainer = document.getElementById('map');
+    console.log('Map container:', mapContainer);
+    console.log('Map container dimensions:', mapContainer.offsetWidth, 'x', mapContainer.offsetHeight);
+    
+    // Initialize map with temporary center (will be adjusted after markers load)
+    var map = L.map('map').setView([0, 0], 2);
+    var userMarker = null;
+    
+    console.log('✓ Map instance created');
+    console.log('Map container element:', map.getContainer());
+    console.log('Map size:', map.getSize());
+
+    // Add OpenStreetMap tiles with custom styling
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+    }).addTo(map);
+
+    // ========================================================================
+    // CENTERS DATA FROM DATABASE
+    // ========================================================================
+    var centers = {{ centers_json| safe }};
+    var markers = [];
+    
+    console.log('Total centers from database:', centers.length);
+    console.log('Centers data:', centers);
+
+    // ========================================================================
+    // RECYCLING CENTER MARKERS - ABSOLUTE STATIC CONFIGURATION
+    // ========================================================================
+    centers.forEach(function (center, index) {
+        // DEBUG: Log each center's coordinates
+        console.log(`Center ${index + 1}: "${center.name}"`);
+        console.log(`  - Latitude: ${center.latitude}`);
+        console.log(`  - Longitude: ${center.longitude}`);
+        console.log(`  - Marker position: [${center.latitude}, ${center.longitude}]`);
+        
+        // VERIFY: Check for coordinate issues
+        if (!center.latitude || !center.longitude) {
+            console.error(`ERROR: Center "${center.name}" has invalid coordinates!`);
+            return; // Skip this marker
+        }
+        if (center.latitude < -90 || center.latitude > 90) {
+            console.error(`ERROR: Center "${center.name}" has invalid latitude: ${center.latitude}`);
+            return;
+        }
+        if (center.longitude < -180 || center.longitude > 180) {
+            console.error(`ERROR: Center "${center.name}" has invalid longitude: ${center.longitude}`);
+            return;
+        }
+        
+        // Create COMPLETELY STATIC marker
+        var marker = L.marker([center.latitude, center.longitude], {
+            // CRITICAL: Zero movement allowed
+            draggable: false,
+            autoPan: false,
+            autoPanOnFocus: false,
+            keyboard: false,
+            
+            // CRITICAL: No visual effects that cause perceived movement
+            riseOnHover: false,
+            riseOffset: 0,
+            
+            // CRITICAL: No interactive state changes
+            interactive: true,  // Must stay true for popups
+            bubblingMouseEvents: false,
+            
+            // CRITICAL: Proper icon configuration  
+            icon: L.divIcon({
+                className: 'custom-marker',
+                html: '<i class="bi bi-geo-alt-fill" style="font-size: 32px; color: #10b981;"></i>',
+                iconSize: [32, 32],
+                iconAnchor: [16, 32],
+                popupAnchor: [0, -32]
+            })
+        }).addTo(map);
+        
+        // CRITICAL: Explicitly disable any drag handlers
+        if (marker.dragging) {
+            marker.dragging.disable();
+        }
+
+        // Custom popup content
+        var popupContent = `
+            <div class="popup-header">
+                <h6 class="mb-0"><i class="bi bi-building me-2"></i>${center.name}</h6>
+            </div>
+            <div class="popup-body">
+                <p class="mb-2"><i class="bi bi-geo-alt me-2"></i><small>${center.address}</small></p>
+                <p class="mb-2"><i class="bi bi-recycle me-2"></i><small>${center.materials_accepted}</small></p>
+                <p class="mb-0"><i class="bi bi-clock me-2"></i><small>${center.working_hours}</small></p>
+            </div>
+            <div class="popup-footer">
+                <a href="/citizen/center/${center.id}/" class="btn btn-sm btn-primary flex-grow-1">
+                    <i class="bi bi-info-circle me-1"></i>Details
+                </a>
+                <a href="https://www.google.com/maps/dir/?api=1&destination=${center.latitude},${center.longitude}" 
+                   target="_blank" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-compass"></i>
+                </a>
+            </div>
+        `;
+
+        // CRITICAL: Bind popup with ZERO map/marker movement
+        marker.bindPopup(popupContent, {
+            maxWidth: 300,
+            className: 'custom-popup',
+            autoPan: false,              // NO auto-pan
+            autoPanPadding: [0, 0],      // NO padding adjustment
+            keepInView: false,           // NO viewport adjustment
+            closeButton: true,
+            autoClose: true,
+            closeOnClick: false,
+            closeOnEscapeKey: true,
+            offset: [0, 0]               // NO offset
+        });
+        
+        // ENSURE: Popup opens on click
+        marker.on('click', function() {
+            console.log(`Clicked on: ${center.name}`);
+            marker.openPopup();
+        });
+
+        markers.push(marker);
+        console.log(`✓ Marker ${index + 1} added successfully at [${center.latitude}, ${center.longitude}]`);
+    });
+
+    // ========================================================================
+    // FIT MAP TO SHOW ALL RECYCLING CENTER MARKERS
+    // ========================================================================
+    console.log(`Total markers placed: ${markers.length}`);
+    
+    // DEBUG: Check if markers exist in DOM
+    setTimeout(function() {
+        var markerElements = document.querySelectorAll('.leaflet-marker-icon');
+        console.log('Marker elements in DOM:', markerElements.length);
+        console.log('Marker elements:', markerElements);
+        if (markerElements.length > 0) {
+            var firstMarker = markerElements[0];
+            console.log('First marker style:', {
+                display: firstMarker.style.display,
+                visibility: firstMarker.style.visibility,
+                opacity: firstMarker.style.opacity,
+                transform: firstMarker.style.transform
+            });
+            console.log('First marker computed style:', window.getComputedStyle(firstMarker));
+        }
+    }, 500);
+    
+    // Force map to recalculate size (fixes some display issues)
+    setTimeout(function() {
+        map.invalidateSize();
+        console.log('Map size invalidated and recalculated');
+        
+        if (centers.length > 0 && markers.length > 0) {
+            try {
+                var group = new L.featureGroup(markers);
+                var bounds = group.getBounds();
+                
+                console.log('Map bounds:', bounds);
+                console.log('  - NorthEast:', bounds.getNorthEast());
+                console.log('  - SouthWest:', bounds.getSouthWest());
+                console.log('  - Center:', bounds.getCenter());
+                
+                map.fitBounds(bounds.pad(0.1));
+                console.log('✓ Map fitted to show all recycling center markers');
+            } catch (error) {
+                console.error('Error fitting bounds:', error);
+                // Fallback: center on first recycling center
+                if (centers.length > 0) {
+                    console.log('Fallback: Centering on first recycling center');
+                    map.setView([centers[0].latitude, centers[0].longitude], 12);
+                }
+            }
+        } else {
+            console.warn('No markers to fit - keeping default map view');
+            // Fallback: if we have centers but no markers, center on first center
+            if (centers.length > 0) {
+                console.log('Fallback: Centering on first center from data');
+                map.setView([centers[0].latitude, centers[0].longitude], 12);
+            }
+        }
+    }, 300); // Small delay to ensure map tiles are loaded
+
+    // ========================================================================
+    // USER LOCATION DETECTION
+    // ========================================================================
+    function locateUser() {
+        console.log('\n=== USER LOCATION DETECTION ===');
+        
+        if (!navigator.geolocation) {
+            console.error('ERROR: Geolocation is not supported by this browser');
+            WasteManagement.showToast('Geolocation is not supported', 'error');
+            return;
+        }
+        
+        console.log('Requesting user location...');
+        
+        navigator.geolocation.getCurrentPosition(
+            function (position) {
+                var lat = position.coords.latitude;
+                var lon = position.coords.longitude;
+                var accuracy = position.coords.accuracy;
+
+                console.log('✓ User location obtained successfully:');
+                console.log(`  - Latitude: ${lat}`);
+                console.log(`  - Longitude: ${lon}`);
+                console.log(`  - Accuracy: ${accuracy} meters`);
+                console.log(`  - Marker position: [${lat}, ${lon}]`);
+                
+                // VERIFY: Check for valid coordinates
+                if (!lat || !lon) {
+                    console.error('ERROR: Invalid user coordinates received');
+                    return;
+                }
+                if (lat < -90 || lat > 90) {
+                    console.error(`ERROR: Invalid user latitude: ${lat}`);
+                    return;
+                }
+                if (lon < -180 || lon > 180) {
+                    console.error(`ERROR: Invalid user longitude: ${lon}`);
+                    return;
+                }
+
+                // Remove existing user marker
+                if (userMarker) {
+                    map.removeLayer(userMarker);
+                    console.log('Removed old user marker');
+                }
+
+                // ========================================================================
+                // USER LOCATION MARKER - ABSOLUTE STATIC (with opacity pulse only)
+                // ========================================================================
+                userMarker = L.marker([lat, lon], {
+                    // CRITICAL: Zero movement allowed
+                    draggable: false,
+                    autoPan: false,
+                    autoPanOnFocus: false,
+                    keyboard: false,
+                    
+                    // CRITICAL: No visual state changes
+                    riseOnHover: false,
+                    riseOffset: 0,
+                    
+                    // CRITICAL: No event bubbling
+                    interactive: true,
+                    bubblingMouseEvents: false,
+                    
+                    // CRITICAL: Proper icon with inline static styles
+                    icon: L.divIcon({
+                        className: 'user-marker',
+                        html: '<i class="bi bi-person-fill" style="font-size: 28px; color: #3b82f6;"></i>',
+                        iconSize: [28, 28],
+                        iconAnchor: [14, 28],
+                        popupAnchor: [0, -28]
+                    })
+                }).addTo(map);
+                
+                // CRITICAL: Explicitly disable any drag handlers on user marker
+                if (userMarker.dragging) {
+                    userMarker.dragging.disable();
+                }
+
+                userMarker.bindPopup('<div class="text-center p-2"><strong>You are here</strong></div>', {
+                    autoPan: false,
+                    autoPanPadding: [0, 0],
+                    keepInView: false
+                });
+
+                console.log(`✓ User marker added successfully at [${lat}, ${lon}]`);
+                
+                // ========================================================================
+                // SMART MAP CENTERING - Show both user and recycling centers
+                // ========================================================================
+                
+                // If we have recycling center markers, fit bounds to show BOTH
+                if (markers.length > 0) {
+                    // Add user marker to bounds calculation
+                    var allMarkers = markers.concat([userMarker]);
+                    var allBounds = new L.featureGroup(allMarkers).getBounds();
+                    
+                    // Calculate distance between user and nearest center
+                    var userLatLng = L.latLng(lat, lon);
+                    var nearestDistance = Infinity;
+                    
+                    centers.forEach(function(center) {
+                        var centerLatLng = L.latLng(center.latitude, center.longitude);
+                        var distance = userLatLng.distanceTo(centerLatLng);
+                        if (distance < nearestDistance) {
+                            nearestDistance = distance;
+                        }
+                    });
+                    
+                    console.log(`Distance to nearest center: ${(nearestDistance / 1000).toFixed(2)} km`);
+                    
+                    // If user is more than 100km from nearest center, show all markers
+                    if (nearestDistance > 100000) { // 100 km
+                        console.log('User is far from recycling centers - fitting bounds to show all markers');
+                        map.fitBounds(allBounds.pad(0.1));
+                    } else {
+                        // User is close, center on user
+                        console.log('User is near recycling centers - centering on user location');
+                        map.setView([lat, lon], 13);
+                    }
+                    
+                    // Show simple success message (distance logged in console only)
+                    WasteManagement.showToast('Location found!', 'success');
+                } else {
+                    // No recycling centers, just center on user
+                    map.setView([lat, lon], 13);
+                    WasteManagement.showToast('Location found!', 'success');
+                }
+                
+                console.log('=== USER LOCATION DETECTION COMPLETE ===\n');
+            }, 
+            function (error) {
+                // Geolocation error handler
+                console.error('\n=== GEOLOCATION ERROR ===');
+                console.error('Error code:', error.code);
+                console.error('Error message:', error.message);
+                
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        console.error('User denied the request for Geolocation');
+                        WasteManagement.showToast('Location access denied', 'warning');
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        console.error('Location information is unavailable');
+                        WasteManagement.showToast('Location unavailable', 'error');
+                        break;
+                    case error.TIMEOUT:
+                        console.error('The request to get user location timed out');
+                        WasteManagement.showToast('Location request timeout', 'error');
+                        break;
+                    default:
+                        console.error('An unknown error occurred');
+                        WasteManagement.showToast('Unable to get your location', 'error');
+                }
+                console.log('Note: Map will show recycling centers only (no user marker)');
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            }
+        );
+    }
+
+    // Auto-locate user on load
+    setTimeout(locateUser, 1000);
+</script>
+{% endblock %}

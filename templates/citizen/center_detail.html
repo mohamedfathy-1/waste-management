@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ center.name }} - Center Details{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'citizen_dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'map_centers' %}">Recycling Centers</a></li>
+            <li class="breadcrumb-item active">{{ center.name }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h2 class="mb-3"><i class="bi bi-building"></i> {{ center.name }}</h2>
+
+                    <div class="mb-3">
+                        <h5><i class="bi bi-geo-alt-fill text-danger"></i> Address</h5>
+                        <p class="ms-4">{{ center.address }}</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <h5><i class="bi bi-recycle text-success"></i> Materials Accepted</h5>
+                        <p class="ms-4">{{ center.materials_accepted|linebreaks }}</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <h5><i class="bi bi-clock text-primary"></i> Working Hours</h5>
+                        <p class="ms-4">{{ center.working_hours }}</p>
+                    </div>
+
+                    {% if center.assigned_staff %}
+                    <div class="mb-3">
+                        <h5><i class="bi bi-person-badge"></i> Staff In-Charge</h5>
+                        <p class="ms-4">{{ center.assigned_staff.get_full_name|default:center.assigned_staff.username }}
+                        </p>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex gap-2">
+                        <a href="https://www.google.com/maps/dir/?api=1&destination={{ center.latitude }},{{ center.longitude }}"
+                            target="_blank" class="btn btn-primary">
+                            <i class="bi bi-compass"></i> Get Directions
+                        </a>
+                        <a href="{% url 'map_centers' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Map
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-map"></i> Location</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div id="map" style="height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Note: Global leaflet-static-markers.css handles all marker static rules */
+    /* Additional page-specific styles only if needed */
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // ========================================================================
+    // MAP INITIALIZATION - CENTER DETAIL
+    // ========================================================================
+    console.log('=== CENTER DETAIL MAP DEBUG INFO ===');
+    console.log('Center Name: {{ center.name }}');
+    console.log('Center Latitude: {{ center.latitude }}');
+    console.log('Center Longitude: {{ center.longitude }}');
+    
+    var centerLat = {{ center.latitude }};
+    var centerLng = {{ center.longitude }};
+    
+    console.log(`Marker position: [${centerLat}, ${centerLng}]`);
+    
+    // Initialize map
+    var map = L.map('map').setView([centerLat, centerLng], 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // ========================================================================
+    // CENTER DETAIL MARKER - ABSOLUTE STATIC
+    // ========================================================================
+    var marker = L.marker([centerLat, centerLng], {
+        // CRITICAL: Zero movement allowed
+        draggable: false,
+        autoPan: false,
+        autoPanOnFocus: false,
+        keyboard: false,
+        
+        // CRITICAL: No visual state changes
+        riseOnHover: false,
+        riseOffset: 0,
+        
+        // CRITICAL: No event bubbling
+        interactive: true,
+        bubblingMouseEvents: false,
+        
+        // CRITICAL: Default icon with proper anchoring
+        icon: L.icon({
+            iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+            iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+            shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        })
+    }).addTo(map);
+    
+    console.log(`✓ Center marker placed at [${centerLat}, ${centerLng}]`);
+    
+    // CRITICAL: Bind popup with ZERO movement
+    marker.bindPopup('<strong>{{ center.name }}</strong>', {
+        autoPan: false,
+        autoPanPadding: [0, 0],
+        keepInView: false,
+        closeButton: true
+    }).openPopup();
+    
+    console.log('✓ Popup opened');
+    console.log('=== CENTER DETAIL MAP COMPLETE ===');
+</script>
+{% endblock %}

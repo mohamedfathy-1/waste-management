@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}Track Reports{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4"><i class="bi bi-list-check"></i> Track My Reports</h1>
+
+    {% if reports %}
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Description</th>
+                            <th>Image</th>
+                            <th>Status</th>
+                            <th>Assigned Center</th>
+                            <th>Submitted</th>
+                            <th>Last Updated</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in reports %}
+                        <tr>
+                            <td><strong>#{{ report.id }}</strong></td>
+                            <td>{{ report.description|truncatewords:15 }}</td>
+                            <td>
+                                {% if report.image %}
+                                <img src="{{ report.image.url }}" alt="Report image"
+                                    style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;"
+                                    data-bs-toggle="tooltip" title="Click to view full image"
+                                    onclick="window.open('{{ report.image.url }}', '_blank')">
+                                {% else %}
+                                <span class="text-muted">No image</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if report.status == 'pending' %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-clock"></i> Pending
+                                </span>
+                                {% elif report.status == 'in_progress' %}
+                                <span class="badge bg-info">
+                                    <i class="bi bi-arrow-repeat"></i> In Progress
+                                </span>
+                                {% else %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> Completed
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if report.center %}
+                                <a href="{% url 'center_detail' report.center.pk %}" class="text-decoration-none">
+                                    {{ report.center.name }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted">Not Assigned</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ report.created_at|date:"M d, Y H:i" }}</td>
+                            <td>{{ report.updated_at|date:"M d, Y H:i" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-inbox" style="font-size: 4rem; color: #ccc;"></i>
+            <h3 class="mt-3">No Reports Yet</h3>
+            <p class="text-muted">You haven't submitted any waste reports.</p>
+            <a href="{% url 'submit_report' %}" class="btn btn-success btn-lg">
+                <i class="bi bi-plus-circle"></i> Submit Your First Report
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize Bootstrap tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+</script>
+{% endblock %}
